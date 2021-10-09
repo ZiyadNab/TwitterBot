@@ -22,25 +22,27 @@ admin.initializeApp({
 
 //get account from database
 var T;
-admin.database().ref("Events").once('value', async function (data) {
+admin.database().ref("Tokens").once('value', async function (data) {
 
     //auth
-    if(data.val().Account.toLowerCase() === "fnbrmena"){
+    if(data.val().FNBRMENA.Status){
+
         //inisilizing Twit
         T = new Twit({
             consumer_key:         consumer_key,
             consumer_secret:      consumer_secret,
-            access_token:         oauth_tokenFNBRMENA,
-            access_token_secret:  oauth_token_secretFNBRMENA,
+            access_token:         data.val().FNBRMENA.OAuthToken,
+            access_token_secret:  data.val().FNBRMENA.OAuthSecretToken,
         })
 
-    }else if(data.val().Account.toLowerCase() === "fnbr_mena"){
+    }else if(data.val().FNBR_MENA.Status){
+
         //inisilizing Twit
         T = new Twit({
             consumer_key:         consumer_key,
             consumer_secret:      consumer_secret,
-            access_token:         oauth_tokenFNBR_MENA,
-            access_token_secret:  oauth_token_secretFNBR_MENA,
+            access_token:         data.val().FNBR_MENA.OAuthToken,
+            access_token_secret:  data.val().FNBR_MENA.OAuthSecretToken,
         })
     }
 })
