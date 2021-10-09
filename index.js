@@ -122,7 +122,7 @@ const Blogposts = async () => {
                                     description = description.replace('<meta name="description" content="', "")
                                     description = description.substring(0, description.indexOf("\">"))
                                     
-                                }else var description = newBlog[0].title
+                                }else var description = `- ${newBlog[0].title}`
 
                                 //add the blog link
                                 description += ` #فورتنايت\n\n• الرابط: https://www.epicgames.com/fortnite${newBlog[0].urlPattern}`
