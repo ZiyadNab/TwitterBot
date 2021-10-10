@@ -411,7 +411,7 @@ const Itemshop = async () => {
                 .then(async res => {
                     if(number === 0){
                         for(let i = 0; i < res.data.shop.length; i++){
-                            response[i] = await res.data.shop[i].displayName
+                            response[i] = await res.data.shop[i].mainId
                         }
                         lastUpdate = await res.data.lastUpdate
                         number++
@@ -425,7 +425,7 @@ const Itemshop = async () => {
 
                     if(JSON.stringify(res.data.lastUpdate) !== JSON.stringify(lastUpdate)){
                         for(let i = 0; i < res.data.shop.length; i++){
-                            shop[i] = await res.data.shop[i].displayName
+                            shop[i] = await res.data.shop[i].mainId
                         }
 
                         if(JSON.stringify(shop) !== JSON.stringify(response)){
@@ -1840,7 +1840,7 @@ const Itemshop = async () => {
                             })
 
                             for(let i = 0; i < res.data.shop.length; i++){
-                                response[i] = await res.data.shop[i].displayName
+                                response[i] = await res.data.shop[i].mainId
                             }
                             lastUpdate = await res.data.lastUpdate
 
