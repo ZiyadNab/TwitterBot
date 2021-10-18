@@ -1856,7 +1856,7 @@ const Itemshop = async () => {
             }
         })
     }
-    setInterval(ItemshopEvents, 1.5 * 20000)
+    setInterval(ItemshopEvents, 1.5 * 40000)
 }
 
 //activate events
