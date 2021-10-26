@@ -1821,12 +1821,12 @@ const Itemshop = async () => {
                             //  tweet the blogpost
                             //
                             const buffer = canvas.toBuffer('image/png')
-                            await T.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, function(err, data, response) {
+                            await T.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, async function(err, data, response) {
                                 if(err) console.log(err)
                                 else{
                                     var mediaIdStr = await data.media_id_string
                                 
-                                    await T.post('statuses/update', { status: '- الشوب #فورتنايت', media_ids: [mediaIdStr]}, function(err, data, response) {
+                                    await T.post('statuses/update', { status: '- الشوب #فورتنايت', media_ids: [mediaIdStr]}, async function(err, data, response) {
                                         if(err) console.log(err)
                                     })
                                 }
