@@ -303,13 +303,6 @@ const dynamicbackgrounds = async () => {
     setInterval(DynamicBackgroundsEvents, 1 * 20000)
 }
 
-const shopSection = async () => {
-}
-
-const newSectionsAdded = async () => {
-    
-}
-
 const Servers = async () => {
 
     //result
@@ -328,11 +321,11 @@ const Servers = async () => {
             if(status){
 
                 //request the token
-                const token = await axios.get('https://api.glitchlux.dev/exchange')
+                const token = await axios.get('https://fnbrmenaapi.herokuapp.com/api/auth?authType=exchange')
 
                 //request data
                 await axios.get('http://lightswitch-public-service-prod.ol.epicgames.com/lightswitch/api/service/fortnite/status',
-                {headers: {'Content-Type': 'application/json','Authorization': `Bearer ${token.data.access_token}`}})
+                {headers: {'Content-Type': 'application/json','Authorization': `Bearer ${token.data.data.token.access_token}`}})
                 .then(async res => {
 
                     if(number === 0){
@@ -1828,12 +1821,12 @@ const Itemshop = async () => {
                             //  tweet the blogpost
                             //
                             const buffer = canvas.toBuffer('image/png')
-                            T.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, function(err, data, response) {
+                            await T.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, function(err, data, response) {
                                 if(err) console.log(err)
                                 else{
-                                    var mediaIdStr = data.media_id_string
+                                    var mediaIdStr = await data.media_id_string
                                 
-                                    T.post('statuses/update', { status: '- الشوب #فورتنايت', media_ids: [mediaIdStr]}, function(err, data, response) {
+                                    await T.post('statuses/update', { status: '- الشوب #فورتنايت', media_ids: [mediaIdStr]}, function(err, data, response) {
                                         if(err) console.log(err)
                                     })
                                 }
