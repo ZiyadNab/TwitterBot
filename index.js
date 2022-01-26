@@ -47,7 +47,7 @@ admin.database().ref("Tokens").once('value', async function (data) {
     }
 })
 
-function getBase64(url) {
+async function getBase64(url) {
     return axios.get(url, {
         responseType: 'arraybuffer'
 
@@ -171,136 +171,184 @@ const Blogposts = async () => {
     setInterval(BlogpostsEvents, 1 * 20000)
 }
 
-const dynamicbackgrounds = async () => {
+const news = async () => {
     
     //result
-    var response = []
-    var lastModified = []
-    var Counter = 0
-    var number = 0
+    var responseBR = []
+    var activeResBR = []
+    var numberBR = 0
 
-    //handle the blogs
-    const DynamicBackgroundsEvents = async () => {
+    //result
+    var responseSTW = []
+    var activeResSTW = []
+    var numberSTW = 0
+
+    //handle the news
+    const BRNewsEvents = async () => {
 
         //checking if the bot on or off
-        admin.database().ref("Events").child("dynamicbackgrounds").once('value', async function (data) {
-            const status = data.val().Active
-            const lang = data.val().Lang
-            const push = data.val().Push.Status
-            const key = data.val().Push.Key
+        admin.database().ref("Events").child("news").once('value', async function (data) {
+            const status = data.val().BR.Active
+            const lang = data.val().BR.Lang
+            const push = data.val().BR.Push.Status
+            const pushIndex = data.val().BR.Push.Index
 
             //if the event is set to be true [ON]
             if(status){
 
                 //request data
-                await FNBRMENA.EpicContentEndpoint(lang)
+                axios.get(`https://fn-api.com/api/news/br?lang=${lang}`)
                 .then(async res => {
 
-                    //constant response to make working easy
-                    const backgroundsDATA = res.data.dynamicbackgrounds.backgrounds.backgrounds
-
                     //storing the first start up
-                    if(number === 0){
+                    if(numberBR === 0){
 
-                        //storing dynamicbackgrounds
-                        Counter = 0
-                        lastModified = await res.data.dynamicbackgrounds.lastModified
-                        for(let i = 0; i < backgroundsDATA.length; i++){
-
-                            //if there is an image
-                            if(backgroundsDATA[i].backgroundimage !== undefined){
-                                response[Counter] = backgroundsDATA[i]
-                                Counter++
-                            }
+                        //storing news
+                        for(let i = 0; i < res.data.data.news.length; i++){
+                            responseBR[i] = res.data.data.news[i].id
                         }
 
                         //stop from storing again
-                        number++
+                        numberBR++
+                    }
+
+                    //storing active news
+                    for(let i = 0; i < res.data.data.news.length; i++){
+                        activeResBR[i] = res.data.data.news[i].id
                     }
 
                     //if push is enabled
-                    if(push){
-                        lastModified = ""
-                        for(let i = 0; i < response.length; i++) if(response[i].key === key) response[i] = []
-                    }
+                    if(push) responseBR[pushIndex] = ""
 
                     //if the data was modified 
-                    if(res.data.dynamicbackgrounds.lastModified !== lastModified){
+                    if(JSON.stringify(activeResBR) !== JSON.stringify(responseBR)){
 
-                        //a data has been changed
-                        for(let i = 0; i < backgroundsDATA.length; i++){
+                        //find the new news
+                        for(let i = 0; i < activeResBR.length; i++){
+                            if(!responseBR.includes(activeResBR[i])){
 
-                            //if there is an image
-                            if(backgroundsDATA[i].backgroundimage !== undefined){
+                                //post the news to twitter
+                                const description = `- ${res.data.data.news[i].title} #فورتنايت\n\n• ${res.data.data.news[i].body}`
 
-                                //if the image is new
-                                if(!JSON.stringify(response).includes(JSON.stringify(backgroundsDATA[i]))){
+                                //
+                                //  tweet the blogpost
+                                //
+                                T.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = data.media_id_string
+                                    
+                                        T.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
 
-                                    //registering fonts
-                                    Canvas.registerFont('./assets/font/Lalezar-Regular.ttf', {family: 'Arabic',weight: "700"});
-                                    Canvas.registerFont('./assets/font/BurbankBigCondensed-Black.otf' ,{family: 'Burbank Big Condensed',weight: "700"})
-
-                                    //canvas
-                                    const backgroundIMG = await Canvas.loadImage(backgroundsDATA[i].backgroundimage)
-                                    const canvas = Canvas.createCanvas(backgroundIMG.width, backgroundIMG.height);
-                                    const ctx = canvas.getContext('2d')
-
-                                    //draw the image
-                                    ctx.drawImage(backgroundIMG, 0, 0, canvas.width, canvas.height)
-
-                                    //credits
-                                    ctx.fillStyle = '#ffffff';
-                                    ctx.textAlign='left';
-                                    ctx.font = '50px Burbank Big Condensed';
-                                    ctx.fillText("FNBRMENA", 15, 55);
-
-                                    if(backgroundsDATA[i].key) var text = '- خلفيه لوبي جديدة #فورتنايت'
-                                    else var text = '- خلفيه شوب جديدة #فورتنايت'
-
-                                    //
-                                    //  tweet the blogpost
-                                    //
-                                    const buffer = canvas.toBuffer('image/png')
-                                    T.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, function(err, data, response) {
-                                        if(err) console.log(err)
-                                        else{
-                                            var mediaIdStr = data.media_id_string
-                                        
-                                            T.post('statuses/update', { status: text, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                                if(err) console.log(err)
-                                            })
-                                        }
-                                    })
-
-                                }
                             }
                         }
 
-                        //storing dynamicbackgrounds
-                        Counter = 0
-                        lastModified = await res.data.dynamicbackgrounds.lastModified
-                        for(let i = 0; i < backgroundsDATA.length; i++){
-
-                            //if there is an image
-                            if(backgroundsDATA[i].backgroundimage !== undefined){
-                                response[Counter] = backgroundsDATA[i]
-                                Counter++
-                            }
+                        //restoring news
+                        for(let i = 0; i < res.data.data.news.length; i++){
+                            responseBR[i] = res.data.data.news[i].id
                         }
 
                         //trun off push if enabled
-                        await admin.database().ref("ERA's").child("Events").child("dynamicbackgrounds").child("Push").update({
+                        await admin.database().ref("Events").child("news").child("BR").child("Push").update({
                             Status: false
                         })
                     }
 
                 }).catch(err => {
-                    console.log("The issue is in DynamicBackgrounds Events ", err)
+                    console.log("The issue is in BRNewsEvents Events ", err)
                 })
             }
         })
     }
-    setInterval(DynamicBackgroundsEvents, 1 * 20000)
+
+    //handle the news
+    const STWNewsEvents = async () => {
+
+        //checking if the bot on or off
+        admin.database().ref("Events").child("news").once('value', async function (data) {
+            const status = data.val().STW.Active
+            const lang = data.val().STW.Lang
+            const push = data.val().STW.Push.Status
+            const pushIndex = data.val().STW.Push.Index
+
+            //if the event is set to be true [ON]
+            if(status){
+
+                //request data
+                axios.get(`https://fn-api.com/api/news/stw?lang=${lang}`)
+                .then(async res => {
+
+                    //storing the first start up
+                    if(numberSTW === 0){
+
+                        //storing news
+                        for(let i = 0; i < res.data.data.news.length; i++){
+                            responseSTW[i] = res.data.data.news[i].title
+                        }
+
+                        //stop from storing again
+                        numberSTW++
+                    }
+
+                    //storing active news
+                    for(let i = 0; i < res.data.data.news.length; i++){
+                        activeResSTW[i] = res.data.data.news[i].title
+                    }
+
+                    //if push is enabled
+                    if(push) responseSTW[pushIndex] = ""
+
+                    //if the data was modified 
+                    if(JSON.stringify(activeResSTW) !== JSON.stringify(responseSTW)){
+
+                        //find the new news
+                        for(let i = 0; i < activeResSTW.length; i++){
+                            if(!responseSTW.includes(activeResSTW[i])){
+
+                                //post the news to twitter
+                                const description = `- ${res.data.data.news[i].title} #فورتنايت\n\n• ${res.data.data.news[i].body}`
+
+                                //
+                                //  tweet the blogpost
+                                //
+                                T.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = data.media_id_string
+                                    
+                                        T.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
+
+                            }
+                        }
+
+                        //restoring news
+                        for(let i = 0; i < res.data.data.news.length; i++){
+                            responseSTW[i] = res.data.data.news[i].title
+                        }
+
+                        //trun off push if enabled
+                        await admin.database().ref("Events").child("news").child("STW").child("Push").update({
+                            Status: false
+                        })
+                    }
+
+                }).catch(err => {
+                    console.log("The issue is in BRNewsEvents Events ", err)
+                })
+            }
+        })
+    }
+
+    setInterval(BRNewsEvents, 1 * 40000)
+    setInterval(STWNewsEvents, 1 * 20000)
 }
 
 const Servers = async () => {
@@ -1854,5 +1902,6 @@ const Itemshop = async () => {
 
 //activate events
 Blogposts()
-Itemshop()
+//Itemshop()
 Servers()
+news()
