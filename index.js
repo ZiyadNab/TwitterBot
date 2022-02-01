@@ -408,7 +408,22 @@ const Servers = async () => {
                             })
                         }
                         else if(res.data.status.toLowerCase() === "down"){
-                            
+                            var serversStatus = '- تم اغلاق السيرفرات بأنتظار التحديث... #فورتنايت 🛠️'
+                            var url = 'https://imgur.com/glFsVFf.png'
+
+                            //
+                            //  tweet the blogpost
+                            //
+                            T.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                if(err) console.log(err)
+                                else{
+                                    var mediaIdStr = data.media_id_string
+                                
+                                    T.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                        if(err) console.log(err)
+                                    })
+                                }
+                            })
                         }
 
                         //trun off push if enabled
