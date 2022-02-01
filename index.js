@@ -408,7 +408,7 @@ const Servers = async () => {
                             })
                         }
                         else if(res.data.status.toLowerCase() === "down"){
-                            var serversStatus = '- تم اغلاق السيرفرات بأنتظار التحديث... #فورتنايت 🛠️'
+                            var serversStatus = '- تم اغلاق السيرفرات... #فورتنايت 🛠️'
                             var url = 'https://imgur.com/glFsVFf.png'
 
                             //
