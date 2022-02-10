@@ -113,14 +113,13 @@ const Blogposts = async () => {
                                 })
 
                                 //seting up the description
-                                if(newBlog[0].shareDescription !== "" && newBlog[0].shareDescription !== undefined) var description = `- ${newBlog[0].shareDescription}`
-                                else if(newBlog[0]._metaTags !== undefined){
+                                if(newBlog[0]._metaTags !== undefined){
 
                                     //add description variable
                                     var description = `- ${newBlog[0]._metaTags}`
                                     description = description.replace(description.substring(2, description.indexOf("<meta name=\"description\" content=\"")), "")
                                     description = description.replace('<meta name="description" content="', "")
-                                    description = description.substring(0, description.indexOf("\">"))
+                                    description = description.substring(0, description.indexOf(">"))
                                     
                                 }else var description = `- ${newBlog[0].title}`
 
