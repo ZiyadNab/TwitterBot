@@ -2,6 +2,7 @@ const Canvas = require("canvas")
 const axios = require('axios')
 const Twit = require("twit")
 const moment = require('moment')
+require('moment-timezone')
 const admin = require("firebase-admin");
 const serviceAccount = require("./Firebase/serviceAccountKey.json");
 console.log('Twitter bot is online')
@@ -21,28 +22,30 @@ admin.initializeApp({
 })
 
 //get account from database
-var T;
+var Primary;
+var Secondary
 admin.database().ref("Tokens").once('value', async function (data) {
 
     //auth
-    if(data.val().FNBRMENA.Status){
+    if(data.val().Primary.Status){
 
         //inisilizing Twit
-        T = new Twit({
+        Primary = new Twit({
             consumer_key:         consumer_key,
             consumer_secret:      consumer_secret,
-            access_token:         data.val().FNBRMENA.OAuthToken,
-            access_token_secret:  data.val().FNBRMENA.OAuthSecretToken,
+            access_token:         data.val().Primary.OAuthToken,
+            access_token_secret:  data.val().Primary.OAuthSecretToken,
         })
-
-    }else if(data.val().FNBR_MENA.Status){
+    }
+    
+    if(data.val().Secondary.Status){
 
         //inisilizing Twit
-        T = new Twit({
+        Secondary = new Twit({
             consumer_key:         consumer_key,
             consumer_secret:      consumer_secret,
-            access_token:         data.val().FNBR_MENA.OAuthToken,
-            access_token_secret:  data.val().FNBR_MENA.OAuthSecretToken,
+            access_token:         data.val().Secondary.OAuthToken,
+            access_token_secret:  data.val().Secondary.OAuthSecretToken,
         })
     }
 })
@@ -53,6 +56,157 @@ async function getBase64(url) {
 
       }).then(response =>
         Buffer.from(response.data, 'binary').toString('base64'))
+}
+
+const Tournaments = async () => {
+
+    //result
+    var tournaments = []
+    var response = []
+    var number = 0
+
+    //handle the blogs
+    const TournamentsEvents = async () => {
+
+        //checking if the bot on or off
+        admin.database().ref("Events").child("tournaments").once('value', async function (data) {
+            const status = data.val().Active
+            const lang = data.val().Lang
+            const push = data.val().Push
+            const Account = data.val().Account
+            moment.locale(lang)
+
+            //if the event is set to be true [ON]
+            if(status){
+
+                //request data
+                axios.get(`https://fortniteapi.io/v1/events/list?lang=${lang}&region=ME`, { headers: {'Content-Type': 'application/json','Authorization': '6d960a51-50460ffb-00881638-e0d139e2'} })
+                .then(async res => {
+
+                    //storing the first start up
+                    if(number === 0){
+
+                        //storing
+                        for(let i = 0; i < res.data.events.length; i++){
+                            tournaments[i] = await res.data.events[i].id
+                        }
+
+                        //stop from storing again
+                        number++
+                    }
+
+                    //if push is enabled
+                    if(push) tournaments[292] = []
+
+                    //storing the new blog to compare
+                    for(let i = 0; i < res.data.events.length; i++){
+                        response[i] = await await res.data.events[i].id
+                    }
+
+                    //check if there is a new blog
+                    if(JSON.stringify(response) !== JSON.stringify(tournaments)){
+
+                        //new blog has been registerd lets find it
+                        for(let i = 0; i < response.length; i++){
+                            
+                            //compare if its the index i includes or not
+                            if(!tournaments.includes(response[i])){
+
+                                //filtering to get the new blog
+                                var newTournament = await res.data.events.filter(tournament => {
+                                    return tournament.id === response[i]
+                                })
+
+                                if(moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM') == moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')){
+                                    if(moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do') == moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')) var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM')}`
+                                    else var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')}`
+
+                                }else var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')}`
+                                var time = `من ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('h')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('h')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('a')} 🇸🇦`
+                                var description = `- ${newTournament[0].long_description} \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}`
+
+                                //
+                                // tweet the tournaments
+                                //
+                                if(Account == "primary"){
+                                    Primary.post('media/upload', { media_data: await getBase64(newTournament[0].tileImage) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err){
+                                                    
+                                                    if(err.allErrors[0].message.includes("Tweet needs to be a bit shorter")){
+                                                        if(newTournament[0].long_description.toLowerCase().includes("fn.gg")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fn.gg"), newTournament[0].long_description.length)
+                                                        else if(newTournament[0].long_description.toLowerCase().includes("fortnite.com")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fortnite.com"), newTournament[0].long_description.length)
+                                                        else if(newTournament[0].long_description.toLowerCase().includes("www")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("www"), newTournament[0].long_description.length)
+                                                        else var link = 'لم يتم اكتشاف الرابط!'
+                                                        description = `- ${newTournament[0].short_description} #فورتنايت \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}\nالرابط : ${link}`
+                                                        
+                                                        Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                            if(err)console.log(err)
+                                                            
+                                                        })
+    
+                                                    }else console.log(err)
+                                                }
+                                            
+    
+                                            })
+                                        }
+                                    })
+                                }else if(Account == "secondary"){
+                                    Secondary.post('media/upload', { media_data: await getBase64(newTournament[0].tileImage) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err){
+                                                    
+                                                    if(err.allErrors[0].message.includes("Tweet needs to be a bit shorter")){
+                                                        if(newTournament[0].long_description.toLowerCase().includes("fn.gg")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fn.gg"), newTournament[0].long_description.length)
+                                                        else if(newTournament[0].long_description.toLowerCase().includes("fortnite.com")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fortnite.com"), newTournament[0].long_description.length)
+                                                        else if(newTournament[0].long_description.toLowerCase().includes("www")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("www"), newTournament[0].long_description.length)
+                                                        else var link = 'لم يتم اكتشاف الرابط!'
+                                                        description = `- ${newTournament[0].short_description} #فورتنايت \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}\nالرابط : ${link}`
+                                                        
+                                                        Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                            if(err)console.log(err)
+                                                            
+                                                        })
+    
+                                                    }else console.log(err)
+                                                }
+                                            
+    
+                                            })
+                                        }
+                                    })
+                                }
+                            }
+                        }
+
+                        //store the new data
+                        for(let i = 0; i < res.data.events.length; i++){
+                            tournaments[i] = await res.data.events[i].id
+                        }
+
+                        //trun off push if enabled
+                        await admin.database().ref("Events").child("tournaments").update({
+                            Push: false
+                        })
+
+                    }
+                
+                }).catch(err => {
+                    console.log("The issue is in Tournaments Events ", err)
+                })
+            }
+        })
+    }
+    setInterval(TournamentsEvents, 1 * 30000)
 }
 
 const Blogposts = async () => {
@@ -70,6 +224,7 @@ const Blogposts = async () => {
             const status = data.val().Active
             const lang = data.val().Lang
             const push = data.val().Push
+            const Account = data.val().Account
 
             //if the event is set to be true [ON]
             if(status){
@@ -136,16 +291,29 @@ const Blogposts = async () => {
                                 //
                                 //  tweet the blogpost
                                 //
-                                T.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
-                                    if(err) console.log(err)
-                                    else{
-                                        var mediaIdStr = data.media_id_string
-                                    
-                                        T.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                            if(err) console.log(err)
-                                        })
-                                    }
-                                })
+                                if(Account == "primary"){
+                                    Primary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }else if(Account == "secondary"){
+                                    Secondary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }
                             }
                         }
 
@@ -191,6 +359,7 @@ const news = async () => {
             const lang = data.val().BR.Lang
             const push = data.val().BR.Push.Status
             const pushIndex = data.val().BR.Push.Index
+            const Account = data.val().BR.Account
 
             //if the event is set to be true [ON]
             if(status){
@@ -232,17 +401,29 @@ const news = async () => {
                                 //
                                 //  tweet the blogpost
                                 //
-                                T.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
-                                    if(err) console.log(err)
-                                    else{
-                                        var mediaIdStr = data.media_id_string
-                                    
-                                        T.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                            if(err) console.log(err)
-                                        })
-                                    }
-                                })
-
+                                if(Account == "primary"){
+                                    Primary.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }else if(Account == "secondary"){
+                                    Secondary.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }
                             }
                         }
 
@@ -273,6 +454,7 @@ const news = async () => {
             const lang = data.val().STW.Lang
             const push = data.val().STW.Push.Status
             const pushIndex = data.val().STW.Push.Index
+            const Account = data.val().STW.Account
 
             //if the event is set to be true [ON]
             if(status){
@@ -314,17 +496,29 @@ const news = async () => {
                                 //
                                 //  tweet the blogpost
                                 //
-                                T.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
-                                    if(err) console.log(err)
-                                    else{
-                                        var mediaIdStr = data.media_id_string
-                                    
-                                        T.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                            if(err) console.log(err)
-                                        })
-                                    }
-                                })
-
+                                if(Account == "primary"){
+                                    Primary.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }else if(Account == "secondary"){
+                                    Secondary.post('media/upload', { media_data: await getBase64(res.data.data.news[i].image) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }
                             }
                         }
 
@@ -363,6 +557,7 @@ const Servers = async () => {
             const status = data.val().Active
             const lang = data.val().Lang
             const push = data.val().Push
+            const Account = data.val().Account
 
             //if the event is set to be true [ON]
             if(status){
@@ -395,16 +590,29 @@ const Servers = async () => {
                             //
                             //  tweet the blogpost
                             //
-                            T.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
-                                if(err) console.log(err)
-                                else{
-                                    var mediaIdStr = data.media_id_string
-                                
-                                    T.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                        if(err) console.log(err)
-                                    })
-                                }
-                            })
+                            if(Account == "primary"){
+                                Primary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = data.media_id_string
+                                    
+                                        Primary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
+                            }else if(Account == "secondary"){
+                                Secondary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = data.media_id_string
+                                    
+                                        Secondary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
+                            }
                         }
                         else if(res.data.status.toLowerCase() === "down"){
                             var serversStatus = '- تم اغلاق السيرفرات... #فورتنايت 🛠️'
@@ -413,16 +621,29 @@ const Servers = async () => {
                             //
                             //  tweet the blogpost
                             //
-                            T.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
-                                if(err) console.log(err)
-                                else{
-                                    var mediaIdStr = data.media_id_string
-                                
-                                    T.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                        if(err) console.log(err)
-                                    })
-                                }
-                            })
+                            if(Account == "primary"){
+                                Primary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = data.media_id_string
+                                    
+                                        Primary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
+                            }else if(Account == "secondary"){
+                                Secondary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = data.media_id_string
+                                    
+                                        Secondary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
+                            }
                         }
 
                         //trun off push if enabled
@@ -458,6 +679,7 @@ const Itemshop = async () => {
             const status = data.val().Active;
             const lang = data.val().Lang;
             const push = data.val().Push
+            const Account = data.val().Account
 
             //if the event is set to be true [ON]
             if(status){
@@ -1883,16 +2105,29 @@ const Itemshop = async () => {
                             //  tweet the blogpost
                             //
                             const buffer = canvas.toBuffer('image/png')
-                            await T.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, async function(err, data, response) {
-                                if(err) console.log(err)
-                                else{
-                                    var mediaIdStr = await data.media_id_string
-                                
-                                    await T.post('statuses/update', { status: '- الشوب #فورتنايت', media_ids: [mediaIdStr]}, async function(err, data, response) {
-                                        if(err) console.log(err)
-                                    })
-                                }
-                            })
+                            if(Account == "primary"){
+                                Primary.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, async function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = await data.media_id_string
+                                    
+                                        Primary.post('statuses/update', { status: '- الشوب #فورتنايت', media_ids: [mediaIdStr]}, async function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
+                            }else if(Account == "secondary"){
+                                Secondary.post('media/upload', { media_data: Buffer.from(buffer, 'binary').toString('base64') }, async function(err, data, response) {
+                                    if(err) console.log(err)
+                                    else{
+                                        var mediaIdStr = await data.media_id_string
+                                    
+                                        Secondary.post('statuses/update', { status: '- الشوب #فورتنايت', media_ids: [mediaIdStr]}, async function(err, data, response) {
+                                            if(err) console.log(err)
+                                        })
+                                    }
+                                })
+                            }
 
                             for(let i = 0; i < res.data.shop.length; i++){
                                 response[i] = await res.data.shop[i].mainId
@@ -1919,3 +2154,4 @@ Blogposts()
 //Itemshop()
 Servers()
 news()
+Tournaments()
