@@ -83,125 +83,130 @@ const Tournaments = async () => {
                 axios.get(`https://fortniteapi.io/v1/events/list?lang=${lang}&region=ME`, { headers: {'Content-Type': 'application/json','Authorization': '6d960a51-50460ffb-00881638-e0d139e2'} })
                 .then(async res => {
 
-                    //storing the first start up
-                    if(number === 0){
+                    if(res.data.result){
 
-                        //storing
-                        for(let i = 0; i < res.data.events.length; i++){
-                            tournaments[i] = await res.data.events[i].id
+                        //storing the first start up
+                        if(number === 0){
+
+                            //storing
+                            for(let i = 0; i < res.data.events.length; i++){
+                                tournaments[i] = await res.data.events[i].id
+                            }
+
+                            //stop from storing again
+                            number++
                         }
 
-                        //stop from storing again
-                        number++
-                    }
+                        //if push is enabled
+                        if(push) tournaments[292] = []
 
-                    //if push is enabled
-                    if(push) tournaments[292] = []
+                        //storing the new blog to compare
+                        for(let i = 0; i < res.data.events.length; i++){
+                            response[i] = await await res.data.events[i].id
+                        }
 
-                    //storing the new blog to compare
-                    for(let i = 0; i < res.data.events.length; i++){
-                        response[i] = await await res.data.events[i].id
-                    }
+                        //check if there is a new blog
+                        if(JSON.stringify(response) !== JSON.stringify(tournaments)){
 
-                    //check if there is a new blog
-                    if(JSON.stringify(response) !== JSON.stringify(tournaments)){
+                            //new blog has been registerd lets find it
+                            for(let i = 0; i < response.length; i++){
+                                
+                                //compare if its the index i includes or not
+                                if(!tournaments.includes(response[i])){
 
-                        //new blog has been registerd lets find it
-                        for(let i = 0; i < response.length; i++){
-                            
-                            //compare if its the index i includes or not
-                            if(!tournaments.includes(response[i])){
-
-                                //filtering to get the new blog
-                                var newTournament = await res.data.events.filter(tournament => {
-                                    return tournament.id === response[i]
-                                })
-
-                                if(moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM') == moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')){
-                                    if(moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do') == moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')) var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM')}`
-                                    else var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')}`
-
-                                }else var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')}`
-                                var time = `من ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('h')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('h')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('a')} 🇸🇦`
-                                var description = `- ${newTournament[0].long_description} \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}`
-
-                                //
-                                // tweet the tournaments
-                                //
-                                if(Account == "primary"){
-                                    Primary.post('media/upload', { media_data: await getBase64(newTournament[0].tileImage) }, function(err, data, response) {
-                                        if(err) console.log(err)
-                                        else{
-                                            var mediaIdStr = data.media_id_string
-                                        
-                                            Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                                if(err){
-                                                    
-                                                    if(err.allErrors[0].message.includes("Tweet needs to be a bit shorter")){
-                                                        if(newTournament[0].long_description.toLowerCase().includes("fn.gg")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fn.gg"), newTournament[0].long_description.length)
-                                                        else if(newTournament[0].long_description.toLowerCase().includes("fortnite.com")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fortnite.com"), newTournament[0].long_description.length)
-                                                        else if(newTournament[0].long_description.toLowerCase().includes("www")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("www"), newTournament[0].long_description.length)
-                                                        else var link = 'لم يتم اكتشاف الرابط!'
-                                                        description = `- ${newTournament[0].short_description} #فورتنايت \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}\nالرابط : ${link}`
-                                                        
-                                                        Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                                            if(err)console.log(err)
-                                                            
-                                                        })
-    
-                                                    }else console.log(err)
-                                                }
-                                            
-    
-                                            })
-                                        }
+                                    //filtering to get the new blog
+                                    var newTournament = await res.data.events.filter(tournament => {
+                                        return tournament.id === response[i]
                                     })
-                                }else if(Account == "secondary"){
-                                    Secondary.post('media/upload', { media_data: await getBase64(newTournament[0].tileImage) }, function(err, data, response) {
-                                        if(err) console.log(err)
-                                        else{
-                                            var mediaIdStr = data.media_id_string
-                                        
-                                            Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                                if(err){
-                                                    
-                                                    if(err.allErrors[0].message.includes("Tweet needs to be a bit shorter")){
-                                                        if(newTournament[0].long_description.toLowerCase().includes("fn.gg")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fn.gg"), newTournament[0].long_description.length)
-                                                        else if(newTournament[0].long_description.toLowerCase().includes("fortnite.com")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fortnite.com"), newTournament[0].long_description.length)
-                                                        else if(newTournament[0].long_description.toLowerCase().includes("www")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("www"), newTournament[0].long_description.length)
-                                                        else var link = 'لم يتم اكتشاف الرابط!'
-                                                        description = `- ${newTournament[0].short_description} #فورتنايت \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}\nالرابط : ${link}`
-                                                        
-                                                        Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                                            if(err)console.log(err)
-                                                            
-                                                        })
-    
-                                                    }else console.log(err)
-                                                }
+
+                                    if(moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM') == moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')){
+                                        if(moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do') == moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')) var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM')}`
+                                        else var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')}`
+
+                                    }else var schedule = `${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('MMMM')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('Do')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('MMMM')}`
+                                    var time = `من ${moment(newTournament[0].beginTime).tz('Asia/Riyadh').format('h')} الى ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('h')} ${moment(newTournament[0].endTime).tz('Asia/Riyadh').format('a')} 🇸🇦`
+                                    var description = `- ${newTournament[0].long_description} \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}`
+
+                                    //
+                                    // tweet the tournaments
+                                    //
+                                    if(Account == "primary"){
+                                        Primary.post('media/upload', { media_data: await getBase64(newTournament[0].tileImage) }, function(err, data, response) {
+                                            if(err) console.log(err)
+                                            else{
+                                                var mediaIdStr = data.media_id_string
                                             
-    
-                                            })
-                                        }
-                                    })
+                                                Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                    if(err){
+                                                        
+                                                        if(err.allErrors[0].message.includes("Tweet needs to be a bit shorter")){
+                                                            if(newTournament[0].long_description.toLowerCase().includes("fn.gg")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fn.gg"), newTournament[0].long_description.length)
+                                                            else if(newTournament[0].long_description.toLowerCase().includes("fortnite.com")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fortnite.com"), newTournament[0].long_description.length)
+                                                            else if(newTournament[0].long_description.toLowerCase().includes("www")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("www"), newTournament[0].long_description.length)
+                                                            else var link = 'لم يتم اكتشاف الرابط!'
+                                                            description = `- ${newTournament[0].short_description} #فورتنايت \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}\nالرابط : ${link}`
+                                                            
+                                                            Primary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                                if(err)console.log(err)
+                                                                
+                                                            })
+        
+                                                        }else console.log(err)
+                                                    }
+                                                
+        
+                                                })
+                                            }
+                                        })
+                                    }else if(Account == "secondary"){
+                                        Secondary.post('media/upload', { media_data: await getBase64(newTournament[0].tileImage) }, function(err, data, response) {
+                                            if(err) console.log(err)
+                                            else{
+                                                var mediaIdStr = data.media_id_string
+                                            
+                                                Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                    if(err){
+                                                        
+                                                        if(err.allErrors[0].message.includes("Tweet needs to be a bit shorter")){
+                                                            if(newTournament[0].long_description.toLowerCase().includes("fn.gg")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fn.gg"), newTournament[0].long_description.length)
+                                                            else if(newTournament[0].long_description.toLowerCase().includes("fortnite.com")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("fortnite.com"), newTournament[0].long_description.length)
+                                                            else if(newTournament[0].long_description.toLowerCase().includes("www")) var link = newTournament[0].long_description.substring(newTournament[0].long_description.indexOf("www"), newTournament[0].long_description.length)
+                                                            else var link = 'لم يتم اكتشاف الرابط!'
+                                                            description = `- ${newTournament[0].short_description} #فورتنايت \n\n📍 : الشرق الأوسط\n📅 : ${schedule} \n🕙 : ${time}\n🤼‍♂️ : العنوان ${newTournament[0].name_line1} - ${newTournament[0].name_line2}\nالرابط : ${link}`
+                                                            
+                                                            Secondary.post('statuses/update', { status: description, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                                if(err)console.log(err)
+                                                                
+                                                            })
+        
+                                                        }else console.log(err)
+                                                    }
+                                                
+        
+                                                })
+                                            }
+                                        })
+                                    }
                                 }
                             }
+
+                            //store the new data
+                            for(let i = 0; i < res.data.events.length; i++){
+                                tournaments[i] = await res.data.events[i].id
+                            }
+
+                            //trun off push if enabled
+                            await admin.database().ref("Events").child("tournaments").update({
+                                Push: false
+                            })
+
                         }
 
-                        //store the new data
-                        for(let i = 0; i < res.data.events.length; i++){
-                            tournaments[i] = await res.data.events[i].id
-                        }
-
-                        //trun off push if enabled
-                        await admin.database().ref("Events").child("tournaments").update({
-                            Push: false
-                        })
-
-                    }
+                    }else console.log(res.data)
                 
                 }).catch(err => {
-                    console.log("The issue is in Tournaments Events ", err)
+                    if(err.response) console.log("The issue is in Tournaments Events ", err.response.data)
+                    else console.log("The issue is in Tournaments Events ", err)
                 })
             }
         })
@@ -330,7 +335,8 @@ const Blogposts = async () => {
                     }
                 
                 }).catch(err => {
-                    console.log("The issue is in Blogposts Events ", err)
+                    if(err.response) console.log("The issue is in Blogposts Events ", err.response.data)
+                    else console.log("The issue is in Blogposts Events ", err)
                 })
             }
         })
@@ -439,7 +445,8 @@ const news = async () => {
                     }
 
                 }).catch(err => {
-                    console.log("The issue is in BRNewsEvents Events ", err)
+                    if(err.response) console.log("The issue is in BRNewsEvents Events ", err.response.data)
+                    else console.log("The issue is in BRNewsEvents Events ", err)
                 })
             }
         })
@@ -534,7 +541,8 @@ const news = async () => {
                     }
 
                 }).catch(err => {
-                    console.log("The issue is in BRNewsEvents Events ", err)
+                    if(err.response) console.log("The issue is in STWNewsEvents Events ", err.response.data)
+                    else console.log("The issue is in STWNewsEvents Events ", err)
                 })
             }
         })
@@ -566,7 +574,7 @@ const Servers = async () => {
                 const token = await axios.get('https://fnbrmenaapi.herokuapp.com/api/auth?authType=exchange')
 
                 //request data
-                await axios.get('http://lightswitch-public-service-prod.ol.epicgames.com/lightswitch/api/service/fortnite/status',
+                await axios.get('http://lightswitch-public-service-prod.ol.epicgames.com/lightswitch/api/service/fortnite/statuss',
                 {headers: {'Content-Type': 'application/json','Authorization': `Bearer ${token.data.data.token.access_token}`}})
                 .then(async res => {
 
@@ -656,7 +664,8 @@ const Servers = async () => {
                        
                     }
                 }).catch(err => {
-                    console.log("The issue is in Servers Events ", err)
+                    if(err.response) console.log("The issue is in Servers Events ", err.response.data)
+                    else console.log("The issue is in Servers Events ", err)
                 })
             }
         })
