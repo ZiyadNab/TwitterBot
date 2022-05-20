@@ -574,7 +574,7 @@ const Servers = async () => {
                 const token = await axios.get('https://fnbrmenaapi.herokuapp.com/api/auth?authType=exchange')
 
                 //request data
-                await axios.get('http://lightswitch-public-service-prod.ol.epicgames.com/lightswitch/api/service/fortnite/statuss',
+                await axios.get('http://lightswitch-public-service-prod.ol.epicgames.com/lightswitch/api/service/fortnite/status',
                 {headers: {'Content-Type': 'application/json','Authorization': `Bearer ${token.data.data.token.access_token}`}})
                 .then(async res => {
 
