@@ -211,7 +211,7 @@ const Tournaments = async () => {
             }
         })
     }
-    setInterval(TournamentsEvents, 1 * 30000)
+    setInterval(TournamentsEvents, 1 * 60000)
 }
 
 const Blogposts = async () => {
