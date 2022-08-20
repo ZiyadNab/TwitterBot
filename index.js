@@ -583,101 +583,106 @@ const Servers = async () => {
             if(status){
 
                 //request the token
-                const token = await axios.get('https://fnbrmenaapi.herokuapp.com/api/auth?authType=lac2')
+                await axios.get('https://fnbrmenaapi.herokuapp.com/api/auth?authType=ios')
+                .then(async token => {
 
-                //request data
-                await axios.get('http://lightswitch-public-service-prod.ol.epicgames.com/lightswitch/api/service/fortnite/status',
-                {headers: {'Content-Type': 'application/json','Authorization': `Bearer ${token.data.data.token.access_token}`}})
-                .then(async res => {
-
-                    if(number === 0){
-
-                        //store data
-                        response = await res.data.status
-                        number++
-                    }
-
-                    //push
-                    if(push) response = []
-
-                    //check data
-                    if(res.data.status !== response){
-
-                        if(res.data.status.toLowerCase() === "up"){
-                            var serversStatus = '- فتحت السيرفرات أستمتعوا #فورتنايت ❤️'
-                            var url = 'https://imgur.com/Q6TA03N.png'
-
-                            //
-                            //  tweet the blogpost
-                            //
-                            if(Account == "primary"){
-                                Primary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
-                                    if(err) console.log(err)
-                                    else{
-                                        var mediaIdStr = data.media_id_string
-                                    
-                                        Primary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                            if(err) console.log(err)
-                                        })
-                                    }
-                                })
-                            }else if(Account == "secondary"){
-                                Secondary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
-                                    if(err) console.log(err)
-                                    else{
-                                        var mediaIdStr = data.media_id_string
-                                    
-                                        Secondary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                            if(err) console.log(err)
-                                        })
-                                    }
-                                })
-                            }
+                    //request data
+                    await axios.get('http://lightswitch-public-service-prod.ol.epicgames.com/lightswitch/api/service/fortnite/status', {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token.data.data.token.access_token}`
                         }
-                        else if(res.data.status.toLowerCase() === "down"){
-                            var serversStatus = '- تم اغلاق السيرفرات... #فورتنايت 🛠️'
-                            var url = 'https://imgur.com/glFsVFf.png'
+                    }).then(async res => {
 
-                            //
-                            //  tweet the blogpost
-                            //
-                            if(Account == "primary"){
-                                Primary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
-                                    if(err) console.log(err)
-                                    else{
-                                        var mediaIdStr = data.media_id_string
-                                    
-                                        Primary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                            if(err) console.log(err)
-                                        })
-                                    }
-                                })
-                            }else if(Account == "secondary"){
-                                Secondary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
-                                    if(err) console.log(err)
-                                    else{
-                                        var mediaIdStr = data.media_id_string
-                                    
-                                        Secondary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
-                                            if(err) console.log(err)
-                                        })
-                                    }
-                                })
-                            }
+                        if(number === 0){
+
+                            //store data
+                            response = await res.data.status
+                            number++
                         }
 
-                        //trun off push if enabled
-                        admin.database().ref("Events").child("servers").update({
-                            Push: false
-                        })
+                        //push
+                        if(push) response = []
 
-                        //store data
-                        response = await res.data.status
-                       
-                    }
-                }).catch(err => {
-                    if(err.response) console.log("The issue is in Servers Events ", err.response.data)
-                    else console.log("The issue is in Servers Events ", err)
+                        //check data
+                        if(res.data.status !== response){
+
+                            if(res.data.status.toLowerCase() === "up"){
+                                var serversStatus = '- فتحت السيرفرات أستمتعوا #فورتنايت ❤️'
+                                var url = 'https://imgur.com/Q6TA03N.png'
+
+                                //
+                                //  tweet the blogpost
+                                //
+                                if(Account == "primary"){
+                                    Primary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Primary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }else if(Account == "secondary"){
+                                    Secondary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Secondary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }
+                            }
+                            else if(res.data.status.toLowerCase() === "down"){
+                                var serversStatus = '- تم اغلاق السيرفرات... #فورتنايت 🛠️'
+                                var url = 'https://imgur.com/glFsVFf.png'
+
+                                //
+                                //  tweet the blogpost
+                                //
+                                if(Account == "primary"){
+                                    Primary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Primary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }else if(Account == "secondary"){
+                                    Secondary.post('media/upload', { media_data: await getBase64(url) }, function(err, data, response) {
+                                        if(err) console.log(err)
+                                        else{
+                                            var mediaIdStr = data.media_id_string
+                                        
+                                            Secondary.post('statuses/update', { status: serversStatus, media_ids: [mediaIdStr]}, function(err, data, response) {
+                                                if(err) console.log(err)
+                                            })
+                                        }
+                                    })
+                                }
+                            }
+
+                            //trun off push if enabled
+                            admin.database().ref("Events").child("servers").update({
+                                Push: false
+                            })
+
+                            //store data
+                            response = await res.data.status
+                        
+                        }
+                    }).catch(err => {
+                        if(err.response) console.log("The issue is in Servers Events ", err.response.data)
+                        else console.log("The issue is in Servers Events ", err)
+                    })
                 })
             }
         })
